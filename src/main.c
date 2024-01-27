@@ -2,7 +2,9 @@
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <math.h>
-#include "SDL_FontCache.h"
+//#include "SDL_FontCache.h"
+//#include "inline_font.h"
+#include "SDL2_inprint.h"
 
 #define APP_VEC_IMPLEMENTATION
 #include "vec.h"
@@ -42,7 +44,7 @@ static Mix_Chunk *sound_ouch;
 static Mix_Chunk *sound_ding1;
 static Mix_Chunk *sound_ding2;
 
-static FC_Font *font;
+//static FC_Font *font;
 
 struct Bullet {
     vec2 pos;
@@ -318,6 +320,8 @@ static int app_handle_events()
 
 static void app_draw_frame(SDL_Renderer * renderer)
 {
+    static char score_text_buf[100];
+
     // Clear backgrounds
     memset(game_texture.pixels, 0x10, game_texture.h * sizeof(u32) * game_texture.w);
 
@@ -380,7 +384,10 @@ static void app_draw_frame(SDL_Renderer * renderer)
 
     // Do hardware drawing
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    FC_Draw(font, renderer, 0, 0, "Score\n%d", score);
+    //FC_Draw(font, renderer, 0, 0, "Score\n%d", score);
+    incolor(0xFFFF00, 0x333333);
+    snprintf(score_text_buf, sizeof score_text_buf, "%d", score);
+    inprint(renderer, score_text_buf, 0, 0);
 
     // Present
     SDL_RenderPresent(renderer);
@@ -436,21 +443,21 @@ static void app_state_step(void)
     }
     
 
-    int mouseX, mouseY;
-    int mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
+    int mouse_x, mouse_y;
+    int mouse_state = SDL_GetRelativeMouseState(&mouse_x, &mouse_y);
 
     // Check mouse click bullet fire
-    if (mouseState & SDL_BUTTON_LMASK) {
+    if (mouse_state & SDL_BUTTON_LMASK) {
         fire_bullet(&player_turret);
     }
-    if (mouseState & SDL_BUTTON_RMASK) {
+    if (mouse_state & SDL_BUTTON_RMASK) {
         turret_fire_rate_countdown = 5;
     } else {
         turret_fire_rate_countdown = 40;
     }
 
     // Update turret angle by mouse then set new endpoint
-    player_turret.angle = CLAMP(player_turret.angle - (mouseX * .001), ANGLE_60, ANGLE_120);
+    player_turret.angle = CLAMP(player_turret.angle - (mouse_x * .001), ANGLE_60, ANGLE_120);
     player_turret.end.x = player_turret.start.x + SDL_cos(player_turret.angle) * player_turret.len;
     player_turret.end.y = player_turret.start.y - SDL_sin(player_turret.angle) * player_turret.len;
 
@@ -582,8 +589,10 @@ int main(int argc, char *argv[])
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
 
-    font = FC_CreateFont();
-    FC_LoadFont(font, renderer, "assets/dpcomic.ttf", 14, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
+    //font = FC_CreateFont();
+    //FC_LoadFont(font, renderer, "assets/dpcomic.ttf", 14, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
+    inrenderer(renderer);
+    prepare_inline_font();
 
     SDL_SetSurfaceBlendMode(video_texture.surface, SDL_BLENDMODE_NONE);
     SDL_SetSurfaceBlendMode(game_texture.surface, SDL_BLENDMODE_NONE);
@@ -620,5 +629,6 @@ int main(int argc, char *argv[])
         last_millis = current_millis;
 
     }
+    kill_inline_font();
     return 0;
 }
