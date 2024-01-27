@@ -10,14 +10,11 @@
 #define PIXC_IMPLEMENTATION
 #include "pixc.h"
 
-static int have_mouse;
-
 #define VW 96
-#define VH 128 
+#define VH 128
 
 #define W (VW) 
 #define H (VH) 
-static int toggle_fullscreen = 0;
 static texture32 game_texture;
 static texture32 video_texture;
 static int done = 0;
@@ -315,80 +312,19 @@ static int app_handle_events()
         case SDL_QUIT:
             done = 1;
             return 1;
-        case SDL_MOUSEMOTION:
-            /*
-            if (event.motion.xrel > 0) {
-                player_turret.angle = CLAMP(player_turret.angle - .01, ANGLE_45, ANGLE_135);
-            } else if (event.motion.xrel < 0) {
-                player_turret.angle = CLAMP(player_turret.angle + .01, ANGLE_45, ANGLE_135);
-            }
-            */
-            break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
             case SDLK_ESCAPE:
                 done = 1;
                 return 1;
-            case SDLK_LEFT:
-            case SDLK_j:
-                break;
-            case SDLK_RIGHT:
-            case SDLK_l:
-                break;
-            case SDLK_UP:
-            case SDLK_w:
-                //player_turret.start.y -= .1;
-                break;
-            case SDLK_DOWN:
-            case SDLK_s:
-                break;
-            case SDLK_a:
-                break;
-            case SDLK_d:
-                break;
-            case SDLK_i:
-                break;
             }
             break;
-        case SDL_KEYUP:
-            switch (event.key.keysym.sym) {
-            case SDLK_LEFT:
-            case SDLK_j:
-                break;
-            case SDLK_RIGHT:
-            case SDLK_l:
-                break;
-            case SDLK_UP:
-            case SDLK_w:
-                break;
-            case SDLK_DOWN:
-            case SDLK_s:
-                break;
-            case SDLK_a:
-                break;
-            case SDLK_d:
-                break;
-            case SDLK_i:
-                break;
-            case SDLK_m:
-                have_mouse = have_mouse == SDL_TRUE ? SDL_FALSE : SDL_TRUE;
-                break;
-            case SDLK_f:
-                toggle_fullscreen = 1;
-                break;
-            }
-            break;
-        case SDL_WINDOWEVENT:
-            switch (event.window.event) {
-            case SDL_WINDOWEVENT_RESIZED:
-                break;
-            }
         }
     }
     return 0;
 }
 
-static void app_draw_frame(SDL_Renderer * drawer)
+static void app_draw_frame(SDL_Renderer * renderer)
 {
     // Clear backgrounds
     memset(game_texture.pixels, 0x10, game_texture.h * sizeof(u32) * game_texture.w);
@@ -448,15 +384,14 @@ static void app_draw_frame(SDL_Renderer * drawer)
     SDL_Rect r = {.w = video_texture.w,.h = video_texture.h,.x = 0,.y = 0 };
     SDL_UpdateTexture(screenBuffer, &r, video_texture.pixels,
 		      video_texture.w * sizeof(u32));
-    SDL_RenderCopy(drawer, screenBuffer, NULL, NULL);
+    SDL_RenderCopy(renderer, screenBuffer, NULL, NULL);
 
     // Do hardware drawing
-    SDL_SetRenderDrawColor(drawer, 0, 0, 0, 0);
-    FC_Draw(font, drawer, 0, 0, "Score\n%d", score);
-    FC_Draw(font, drawer, VW - 45, 0, "Arcade\nBoomer\nShooter");
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    FC_Draw(font, renderer, 0, 0, "Score\n%d", score);
 
     // Present
-    SDL_RenderPresent(drawer);
+    SDL_RenderPresent(renderer);
 
 
     if (draw_flash) {
@@ -494,7 +429,6 @@ static void app_state_step(void)
 
     // Handle right
     if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT]) {
-        //player_turret.start.x = CLAMP(player_turret.start.x + 3.0, 10, W - 10);
         if (player_turret.xvel < 3.0) player_turret.xvel += .10;
     } else {
         player_turret.xvel *= 0.99;
@@ -639,24 +573,18 @@ int main(int argc, char *argv[])
 
 
     /* create window */
-    SDL_Window *window = SDL_CreateWindow("pixc test",
+    SDL_Window *window = SDL_CreateWindow("arcade boomer shooter",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           W, H,
                                           SDL_WINDOW_FULLSCREEN_DESKTOP);
-    /*
-       SDL_Window *window = SDL_CreateWindow("pixc test",
-       SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-       W, H, SDL_WINDOW_RESIZABLE);
-     */
-
-    /* create drawer */
-    SDL_Renderer *drawer = SDL_CreateRenderer(window, -1,
+    /* create renderer */
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
                                                 SDL_RENDERER_ACCELERATED |
                                                 SDL_RENDERER_TARGETTEXTURE);
 
     /* pixc init */
-    pixc_init(drawer, VW, VH);
+    pixc_init(renderer, VW, VH);
 
     /* create drawing surface */
     pixc_make_texture32(W, H, &game_texture);
@@ -666,8 +594,7 @@ int main(int argc, char *argv[])
 
 
     font = FC_CreateFont();
-    //FC_LoadFont(font, drawer, "assets/04B_30__.ttf", 10, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
-    FC_LoadFont(font, drawer, "assets/dpcomic.ttf", 14, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
+    FC_LoadFont(font, renderer, "assets/dpcomic.ttf", 14, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
 
     SDL_SetSurfaceBlendMode(video_texture.surface, SDL_BLENDMODE_NONE);
     SDL_SetSurfaceBlendMode(game_texture.surface, SDL_BLENDMODE_NONE);
@@ -684,29 +611,24 @@ int main(int argc, char *argv[])
 
     srand(0);
 
-    u32 lastMillis = 0;
-    u32 currentMillis = 0;
+    u32 last_millis = 0;
+    u32 current_millis = 0;
 
     while (!done) {
-        currentMillis = SDL_GetTicks();
+        current_millis = SDL_GetTicks();
         app_handle_events();
         app_state_step();
-        app_draw_frame(drawer);
-        while (currentMillis < lastMillis + 16) {
-            currentMillis = SDL_GetTicks();
+        app_draw_frame(renderer);
+        while (current_millis < last_millis + 16) {
+            current_millis = SDL_GetTicks();
         }
 
         if (SDL_GetTicks() % 100 == 0) {
-            printf("%d\n", currentMillis - lastMillis);
+            printf("%d\n", current_millis - last_millis);
             fflush(stdout);
         }
 
-        lastMillis = currentMillis;
-
-        if (toggle_fullscreen) {
-            pixc_toggle_fullscreen(window, drawer);
-            toggle_fullscreen = 0;
-        }
+        last_millis = current_millis;
 
     }
     return 0;
