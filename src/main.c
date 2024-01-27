@@ -112,12 +112,12 @@ static inline void putpixel(texture32 *t, int x, int y, u32 color)
     t->pixels[y * W + x] = color;
 }
 
-int random (int lower, int upper)
+static int random (int lower, int upper)
 {
     return (rand() % (upper - lower + 1)) + lower;
 }
 
-void draw_line(texture32 *t, int x0, int y0, int x1, int y1, u32 color)
+static void draw_line(texture32 *t, int x0, int y0, int x1, int y1, u32 color)
 {
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -140,7 +140,7 @@ void draw_line(texture32 *t, int x0, int y0, int x1, int y1, u32 color)
 }
 
 
-void draw_half_circle (texture32 *t, int x0, int y0, int radius, u32 color)
+static void draw_half_circle (texture32 *t, int x0, int y0, int radius, u32 color)
 {
     int x = radius;
     int y = 0;
@@ -163,7 +163,7 @@ void draw_half_circle (texture32 *t, int x0, int y0, int radius, u32 color)
     }
 }
 
-void spawn_star()
+static void spawn_star()
 {
     if (SDL_GetTicks() - stars.last_spawn < star_spawn_countdown) {
         return;
@@ -190,7 +190,7 @@ void spawn_star()
     stars.current_star++;
 }
 
-void spawn_enemy()
+static void spawn_enemy()
 {
     if (SDL_GetTicks() - enemies.last_spawn < enemy_spawn_countdown) {
         return;
@@ -218,7 +218,7 @@ void spawn_enemy()
     }
 }
 
-void draw_stars()
+static void draw_stars()
 {
     for (int i = 0; i < MAX_STARS; ++i) {
         if (stars.list[i].alive == 1) {
@@ -233,7 +233,7 @@ void draw_stars()
     }
 }
 
-void draw_enemies()
+static void draw_enemies()
 {
     for (int i = 0; i < MAX_ENEMIES; ++i) {
         int x = enemies.list[i].pos.x;
@@ -259,10 +259,10 @@ void draw_enemies()
     }
 }
 
-void fire_bullet(struct Turret *turret)
+static void fire_bullet()
 {
-    if (turret->current_bullet >= TURRET_MAX_BULLETS) {
-        turret->current_bullet = 0;
+    if (player_turret.current_bullet >= TURRET_MAX_BULLETS) {
+        player_turret.current_bullet = 0;
     }
 
     if (SDL_GetTicks() - player_turret.last_fire < turret_fire_rate_countdown)
@@ -270,18 +270,18 @@ void fire_bullet(struct Turret *turret)
         return;
     }
 
-    turret->bullets[turret->current_bullet].color = 0xffff0000;
-    turret->bullets[turret->current_bullet].pos.x = turret->end.x;
-    turret->bullets[turret->current_bullet].pos.y = turret->end.y;
-    turret->bullets[turret->current_bullet].angle = turret->angle;
-    turret->bullets[turret->current_bullet].alive = 1;
-    turret->bullets[turret->current_bullet].num_hits = 0;
-    turret->last_fire = SDL_GetTicks();
+    player_turret.bullets[player_turret.current_bullet].color = 0xffff0000;
+    player_turret.bullets[player_turret.current_bullet].pos.x = player_turret.end.x;
+    player_turret.bullets[player_turret.current_bullet].pos.y = player_turret.end.y;
+    player_turret.bullets[player_turret.current_bullet].angle = player_turret.angle;
+    player_turret.bullets[player_turret.current_bullet].alive = 1;
+    player_turret.bullets[player_turret.current_bullet].num_hits = 0;
+    player_turret.last_fire = SDL_GetTicks();
 
-    turret->current_bullet++;
+    player_turret.current_bullet++;
     score--;
 
-    if (turret->current_bullet % 2 == 0) {
+    if (player_turret.current_bullet % 2 == 0) {
         Mix_PlayChannel(1, sound_turret, 0);
     }
 }
@@ -448,7 +448,7 @@ static void app_state_step(void)
 
     // Check mouse click bullet fire
     if (mouse_state & SDL_BUTTON_LMASK) {
-        fire_bullet(&player_turret);
+        fire_bullet();
     }
     if (mouse_state & SDL_BUTTON_RMASK) {
         turret_fire_rate_countdown = 5;
@@ -532,7 +532,7 @@ static void app_state_step(void)
     spawn_star();
 }
 
-int init_audio()
+static int init_audio()
 {
     //Initialize SDL2_mixer
     printf("got here");
