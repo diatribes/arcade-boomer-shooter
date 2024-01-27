@@ -10,19 +10,18 @@
 #define PIXC_IMPLEMENTATION
 #include "pixc.h"
 
-int have_mouse;
+static int have_mouse;
 
 #define VW 96
-#define VH 128
+#define VH 128 
 
 #define W (VW) 
 #define H (VH) 
-int toggle_fullscreen = 0;
-texture32 game_texture;
-texture32 video_texture;
-int done = 0;
-vec2 dir;
-int render_flash = 0;
+static int toggle_fullscreen = 0;
+static texture32 game_texture;
+static texture32 video_texture;
+static int done = 0;
+static int draw_flash = 0;
 
 #define ANGLE_0 (0)
 #define ANGLE_45 (M_PI / 4.0)
@@ -40,13 +39,13 @@ int render_flash = 0;
 #define SOUND_DING1     "assets/ding1.wav"
 #define SOUND_DING2     "assets/ding2.wav"
 
-Mix_Chunk *sound_turret;
-Mix_Chunk *sound_bombhit;
-Mix_Chunk *sound_ouch;
-Mix_Chunk *sound_ding1;
-Mix_Chunk *sound_ding2;
+static Mix_Chunk *sound_turret;
+static Mix_Chunk *sound_bombhit;
+static Mix_Chunk *sound_ouch;
+static Mix_Chunk *sound_ding1;
+static Mix_Chunk *sound_ding2;
 
-FC_Font *font;
+static FC_Font *font;
 
 struct Bullet {
     vec2 pos;
@@ -99,13 +98,13 @@ struct Enemies {
     u32 last_spawn;
 };
 
-struct Turret player_turret = {0};
-struct Enemies enemies = {0};
-struct Stars stars = {0};
-int enemy_spawn_countdown = 190;//600;
-int star_spawn_countdown = 1;
-int turret_fire_rate_countdown = 180;
-u32 score = 0;
+static struct Turret player_turret = {0};
+static struct Enemies enemies = {0};
+static struct Stars stars = {0};
+static int enemy_spawn_countdown = 190;//600;
+static int star_spawn_countdown = 1;
+static int turret_fire_rate_countdown = 180;
+static u32 score = 0;
 
 static inline void putpixel(texture32 *t, int x, int y, u32 color)
 {
@@ -119,40 +118,7 @@ int random (int lower, int upper)
     return (rand() % (upper - lower + 1)) + lower;
 }
 
-void init_buildings()
-{
-
-}
-
-int render_building (int startx)
-{
-    int width = random(15, 30);
-    int height = random(15, 30);
-
-    width = 10.0 + SDL_abs(SDL_cos(startx) * 30.0);
-    height = SDL_abs(SDL_sin(startx) * 40.0);
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width && x < W; ++x) {
-            if (startx + x < W) {
-                putpixel(&game_texture, (startx + x), (H - y), 0xff0a0a0a);
-            }
-        }
-    }
-    return width;
-}
-
-int render_buildings()
-{
-    return 1;
-    int w = 0;
-    for (int x = 0; x < W; x += w + 1) {
-        w = render_building(x);
-    }
-    return 1;
-}
-
-void render_line(texture32 *t, int x0, int y0, int x1, int y1, u32 color)
+void draw_line(texture32 *t, int x0, int y0, int x1, int y1, u32 color)
 {
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
@@ -175,7 +141,7 @@ void render_line(texture32 *t, int x0, int y0, int x1, int y1, u32 color)
 }
 
 
-void render_half_circle (texture32 *t, int x0, int y0, int radius, u32 color)
+void draw_half_circle (texture32 *t, int x0, int y0, int radius, u32 color)
 {
     int x = radius;
     int y = 0;
@@ -183,8 +149,8 @@ void render_half_circle (texture32 *t, int x0, int y0, int radius, u32 color)
 
     while (x >= y) {
 
-        render_line(t, x0 - x, y0 - y, x0 + x, y0 - y, color);
-        render_line(t, x0 - y, y0 - x, x0 + y, y0 - x, color);
+        draw_line(t, x0 - x, y0 - y, x0 + x, y0 - y, color);
+        draw_line(t, x0 - y, y0 - x, x0 + y, y0 - x, color);
 
         if (err <= 0) {
             y += 1;
@@ -259,7 +225,7 @@ void spawn_enemy()
     */
 }
 
-void render_stars()
+void draw_stars()
 {
     for (int i = 0; i < MAX_STARS; ++i) {
         if (stars.list[i].alive == 1) {
@@ -274,7 +240,7 @@ void render_stars()
     }
 }
 
-void render_enemies()
+void draw_enemies()
 {
     for (int i = 0; i < MAX_ENEMIES; ++i) {
         int x = enemies.list[i].pos.x;
@@ -328,7 +294,7 @@ void fire_bullet(struct Turret *turret)
     }
 }
 
-static void render_bullets()
+static void draw_bullets()
 {
     for (int i = 0; i < TURRET_MAX_BULLETS; ++i) {
         if (player_turret.bullets[i].alive == 1) {
@@ -422,118 +388,79 @@ static int app_handle_events()
     return 0;
 }
 
-static void hblur (uint32_t* scan, int width, int height, int pitch)
-{
-	int x,y;
-	u8 *pixel;
-	
-	width -= 1;
-	for (y=0; y<height; y++)
-	{
-		pixel = (u8*)scan;
-		for (x=0; x<width; x++)
-		{
-			pixel[0] = (pixel[0] + pixel[4]) >> 1;
-			pixel[1] = (pixel[1] + pixel[5]) >> 1;
-			pixel[2] = (pixel[2] + pixel[6]) >> 1;
-			pixel += sizeof(uint32_t);
-		}
-		scan += pitch;
-	}
-}
-
-static void render_cabinet()
-{
-    for (int y = 0; y < video_texture.w; y++) {
-        u32 c = 0xff000000 | y >> 2;
-        if (render_flash) {
-           c = 0xffff0000; 
-        }
-        render_line(&video_texture, 0, y, video_texture.w - 1, y, c);
-    }
-}
-
-static void app_render_frame(SDL_Renderer * renderer)
+static void app_draw_frame(SDL_Renderer * drawer)
 {
     // Clear backgrounds
     memset(game_texture.pixels, 0x10, game_texture.h * sizeof(u32) * game_texture.w);
-    //memset(video_texture.pixels, 0xffff, video_texture.h * sizeof(u32) * video_texture.w);
-    render_cabinet();
-    for (int y = 0; y < VH; ++y) {
-        for (int x = 0; x < VW; ++x) {
-            //video_texture.pixels[y * VW + x] = 0xff402618;
-        }
+
+    // Draw flash
+    if (draw_flash) {
+        // left
+        draw_line(&video_texture, 0, 0, 0, video_texture.h, 0xffff0000);
+        draw_line(&video_texture, 1, 0, 1, video_texture.h, 0xffff0000);
+        // right 
+        draw_line(&video_texture, video_texture.w - 1, 0, video_texture.w - 1, video_texture.h, 0xffff0000);
+        draw_line(&video_texture, video_texture.w - 2, 0, video_texture.w - 2, video_texture.h, 0xffff0000);
     }
 
     // Configure turret color
     int turret_color = 0xff0099ff;
     int turret_base_color = 0xff0000ff;
-    if (render_flash) {
+    if (draw_flash) {
        turret_color = 0xffff0000; 
        turret_base_color = 0xffff0000; 
     }
 
-    // Draw buildings
-    //render_buildings();
-
     // Draw stars
-    render_stars();
+    draw_stars();
 
     // Draw planet
     for (int r = game_texture.w / 2; r > 0; r--) {
         u32 cc = game_texture.w / 2 - r;
         u32 c = SDL_MapRGB(game_texture.surface->format, cc, cc, cc);
-        render_half_circle(&game_texture, game_texture.w / 2, game_texture.h - 1, r, c);
+        draw_half_circle(&game_texture, game_texture.w / 2, game_texture.h - 1, r, c);
     }
 
     // Draw turret gun
-    render_line(&game_texture, player_turret.start.x, player_turret.start.y,
+    draw_line(&game_texture, player_turret.start.x, player_turret.start.y,
                 player_turret.end.x, player_turret.end.y, turret_color);
-    /*
-    render_line(&game_texture, player_turret.start.x - 1, player_turret.start.y,
-                player_turret.end.x - 1, player_turret.end.y, turret_color);
-    render_line(&game_texture, player_turret.start.x + 1, player_turret.start.y,
-                player_turret.end.x + 1, player_turret.end.y, turret_color);
-    */
 
     // Draw turret base
-    render_half_circle(&game_texture, player_turret.start.x, player_turret.start.y + 3, 4, turret_base_color);
+    draw_half_circle(&game_texture, player_turret.start.x, player_turret.start.y + 3, 4, turret_base_color);
 
     // Draw bullets
-    render_bullets();
+    draw_bullets();
 
     // Draw enemies
-    render_enemies();
+    draw_enemies();
 
     // Blit the game area to the main video area
-    SDL_Rect renderQuad = { VW / 2 - W / 2, 0, W, H };
-    if (render_flash) {
-        renderQuad.x += SDL_cos(SDL_GetTicks()) * 5.0;
-        SDL_BlitSurface(game_texture.surface, NULL, video_texture.surface, &renderQuad);
+    SDL_Rect draw_quad = { VW / 2 - W / 2, 0, W, H };
+    if (draw_flash) {
+        draw_quad.x += SDL_cos(SDL_GetTicks()) * 5.0;
+        draw_quad.y += SDL_sin(SDL_GetTicks()) * 1.0;
+        SDL_BlitSurface(game_texture.surface, NULL, video_texture.surface, &draw_quad);
     } else {
-        SDL_BlitSurface(game_texture.surface, NULL, video_texture.surface, &renderQuad);
+        SDL_BlitSurface(game_texture.surface, NULL, video_texture.surface, &draw_quad);
     }
-
-    // Visual horizontal blur
-    hblur(video_texture.pixels, video_texture.w, video_texture.h, video_texture.w);
 
     // Update the gpu texture
     SDL_Rect r = {.w = video_texture.w,.h = video_texture.h,.x = 0,.y = 0 };
     SDL_UpdateTexture(screenBuffer, &r, video_texture.pixels,
 		      video_texture.w * sizeof(u32));
-    SDL_RenderCopy(renderer, screenBuffer, NULL, NULL);
+    SDL_RenderCopy(drawer, screenBuffer, NULL, NULL);
 
     // Do hardware drawing
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    FC_Draw(font, renderer, 0, 0, "Score\n%d", score);
-    FC_Draw(font, renderer, VW - 45, 0, "Arcade\nBoomer\nShooter");
+    SDL_SetRenderDrawColor(drawer, 0, 0, 0, 0);
+    FC_Draw(font, drawer, 0, 0, "Score\n%d", score);
+    FC_Draw(font, drawer, VW - 45, 0, "Arcade\nBoomer\nShooter");
 
     // Present
-    SDL_RenderPresent(renderer);
+    SDL_RenderPresent(drawer);
 
 
-    if (render_flash) {
-        --render_flash;
+    if (draw_flash) {
+        --draw_flash;
     }
 }
 
@@ -643,7 +570,7 @@ static void app_state_step(void)
 
 
             if(enemies.list[i].pos.y >= game_texture.h - random(5, 35)) {
-                render_flash = 10;
+                draw_flash = 10;
                 Mix_PlayChannel(-1, sound_ouch, 0);
                 enemies.list[i].explode = 20;
                 enemies.list[i].alive = 0;
@@ -723,13 +650,13 @@ int main(int argc, char *argv[])
        W, H, SDL_WINDOW_RESIZABLE);
      */
 
-    /* create renderer */
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
+    /* create drawer */
+    SDL_Renderer *drawer = SDL_CreateRenderer(window, -1,
                                                 SDL_RENDERER_ACCELERATED |
                                                 SDL_RENDERER_TARGETTEXTURE);
 
     /* pixc init */
-    pixc_init(renderer, VW, VH);
+    pixc_init(drawer, VW, VH);
 
     /* create drawing surface */
     pixc_make_texture32(W, H, &game_texture);
@@ -739,8 +666,8 @@ int main(int argc, char *argv[])
 
 
     font = FC_CreateFont();
-    //FC_LoadFont(font, renderer, "assets/04B_30__.ttf", 10, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
-    FC_LoadFont(font, renderer, "assets/dpcomic.ttf", 14, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
+    //FC_LoadFont(font, drawer, "assets/04B_30__.ttf", 10, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
+    FC_LoadFont(font, drawer, "assets/dpcomic.ttf", 14, FC_MakeColor(255,255,0,255), TTF_STYLE_NORMAL);
 
     SDL_SetSurfaceBlendMode(video_texture.surface, SDL_BLENDMODE_NONE);
     SDL_SetSurfaceBlendMode(game_texture.surface, SDL_BLENDMODE_NONE);
@@ -764,7 +691,7 @@ int main(int argc, char *argv[])
         currentMillis = SDL_GetTicks();
         app_handle_events();
         app_state_step();
-        app_render_frame(renderer);
+        app_draw_frame(drawer);
         while (currentMillis < lastMillis + 16) {
             currentMillis = SDL_GetTicks();
         }
@@ -777,7 +704,7 @@ int main(int argc, char *argv[])
         lastMillis = currentMillis;
 
         if (toggle_fullscreen) {
-            pixc_toggle_fullscreen(window, renderer);
+            pixc_toggle_fullscreen(window, drawer);
             toggle_fullscreen = 0;
         }
 

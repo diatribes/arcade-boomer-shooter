@@ -204,7 +204,7 @@ char* FC_GetStringLatin1(void)
         c = 0xA0;
         while(1)
         {
-            LATIN_1_STRING[i] = 0xC2;
+            LATIN_1_STRING[i] = (char)0xC2;
             LATIN_1_STRING[i+1] = c;
             if(c == 0xBF)
                 break;
@@ -215,7 +215,7 @@ char* FC_GetStringLatin1(void)
         c = 0x80;
         while(1)
         {
-            LATIN_1_STRING[i] = 0xC3;
+            LATIN_1_STRING[i] = (char)0xC3;
             LATIN_1_STRING[i+1] = c;
             if(c == 0xBF)
                 break;
