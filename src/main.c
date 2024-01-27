@@ -98,7 +98,7 @@ struct Enemies {
 static struct Turret player_turret = {0};
 static struct Enemies enemies = {0};
 static struct Stars stars = {0};
-static int enemy_spawn_countdown = 190;//600;
+static int enemy_spawn_countdown = 190;
 static int star_spawn_countdown = 1;
 static int turret_fire_rate_countdown = 180;
 static u32 score = 0;
@@ -213,13 +213,7 @@ void spawn_enemy()
     enemies.current_enemy++;
     if (enemy_spawn_countdown > 90) {
         enemy_spawn_countdown -= 25;
-        //enemy_spawn_countdown += random (-100, 100);
     }
-    /*
-    if (turret_fire_rate_countdown > 800) {
-        turret_fire_rate_countdown -=5;
-    }
-    */
 }
 
 void draw_stars()
@@ -274,7 +268,6 @@ void fire_bullet(struct Turret *turret)
         return;
     }
 
-    //turret->bullets[turret->current_bullet].color = turret->current_bullet % 2 ? 0xffff0000 : 0xffffff00;
     turret->bullets[turret->current_bullet].color = 0xffff0000;
     turret->bullets[turret->current_bullet].pos.x = turret->end.x;
     turret->bullets[turret->current_bullet].pos.y = turret->end.y;
@@ -298,7 +291,6 @@ static void draw_bullets()
             int x = player_turret.bullets[i].pos.x;
             int y = player_turret.bullets[i].pos.y;
             putpixel(&game_texture, x, y, 0xffffff00);
-            //putpixel(&game_texture, x, y, player_turret.bullets[i].color);
             putpixel(&game_texture, x, y + 1, player_turret.bullets[i].color);
         }
     }
@@ -523,9 +515,6 @@ static void app_state_step(void)
                 enemies.list[e].explode = 10;
                 score += 10;
                 player_turret.bullets[b].alive = 0;
-                //if (++player_turret.bullets[b].num_hits >= 1) {
-                    //player_turret.bullets[b].alive = 0;
-                //}
                 Mix_PlayChannel(-1, sound_bombhit, 0);
                 Mix_PlayChannel(-1, e % 2 == 0 ? sound_ding1 : sound_ding2, 0);
             }
