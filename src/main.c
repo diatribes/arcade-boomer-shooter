@@ -60,14 +60,14 @@ struct Star {
     u32 color;
 };
 
-#define MAX_STARS 200
+#define MAX_STARS 100
 struct Stars {
     struct Star list[MAX_STARS];
     int current_star;
     u32 last_spawn;
 };
 
-#define TURRET_MAX_BULLETS 100
+#define TURRET_MAX_BULLETS 25
 struct Turret {
     vec2 start;
     vec2 end;
@@ -80,7 +80,7 @@ struct Turret {
     u32 last_fire;
 };
 
-#define MAX_ENEMIES 400
+#define MAX_ENEMIES 100
 struct Enemy {
     vec2 pos;
     float angle;
