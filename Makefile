@@ -1,6 +1,6 @@
 TARGET = arcade-boomer-shooter 
-LIBS = -lm `pkg-config --cflags --libs sdl2 SDL2_mixer SDL2_ttf`
-CFLAGS= -Wall -std=c99 -pedantic -I ./include `pkg-config --cflags --libs sdl2 SDL2_mixer SDL2_ttf`
+LIBS = -lm `pkg-config --cflags --libs sdl2 SDL2_mixer`
+CFLAGS= -Wall -std=c99 -pedantic -I ./include `pkg-config --cflags --libs sdl2 SDL2_mixer`
 LDFLAGS =
 CC= gcc
 
